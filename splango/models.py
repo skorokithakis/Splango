@@ -3,11 +3,12 @@ from django.contrib.auth.models import User
 
 import logging
 
-#from django.db.models import Avg, Max, Min, Count
+# from django.db.models import Avg, Max, Min, Count
 
 import random
+from django.conf import settings
 
-_NAME_LENGTH=30
+_NAME_LENGTH = 30
 
 class Goal(models.Model):
     name = models.CharField(max_length=_NAME_LENGTH, primary_key=True)
@@ -22,7 +23,7 @@ class Subject(models.Model):
     or later on."""
 
     created = models.DateTimeField(auto_now_add=True, db_index=True)
-    registered_as = models.ForeignKey(User, null=True, editable=False, unique=True)
+    registered_as = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, editable=False, unique=True)
 
     goals = models.ManyToManyField(Goal, through='GoalRecord')
 
@@ -40,7 +41,7 @@ class Subject(models.Model):
         enrollments in case of conflict."""
 
         other_gs = dict(((g.name, 1) for g in othersubject.goals.all()))
-        
+
         for gr in self.goalrecord_set.all().select_related("goal"):
             if gr.goal.name not in other_gs:
                 gr.subject = othersubject
@@ -49,7 +50,7 @@ class Subject(models.Model):
                 gr.delete()
 
 
-        other_exps = dict(( (e.experiment_id,1) for e in othersubject.enrollment_set.all() ))
+        other_exps = dict(((e.experiment_id, 1) for e in othersubject.enrollment_set.all()))
 
         for e in self.enrollment_set.all():
             if e.experiment_id not in other_exps:
@@ -74,13 +75,13 @@ class GoalRecord(models.Model):
     extra = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
-        unique_together= (('subject', 'goal'),)
+        unique_together = (('subject', 'goal'),)
         # never record the same goal twice for a given subject
 
     @staticmethod
     def extract_request_info(request):
         return dict(
-            req_HTTP_REFERER=request.META.get("HTTP_REFERER","")[:255],
+            req_HTTP_REFERER=request.META.get("HTTP_REFERER", "")[:255],
             req_REMOTE_ADDR=request.META["REMOTE_ADDR"],
             req_path=request.path[:255])
 
@@ -89,7 +90,7 @@ class GoalRecord(models.Model):
         logging.warn("Splango:goalrecord %r" % [subject, goalname, request_info, extra])
         goal, created = Goal.objects.get_or_create(name=goalname)
 
-        gr,created = cls.objects.get_or_create(subject=subject, 
+        gr, created = cls.objects.get_or_create(subject=subject,
                                                goal=goal,
                                                defaults=request_info)
 
@@ -121,25 +122,25 @@ class Enrollment(models.Model):
     experiment = models.ForeignKey('splango.Experiment', editable=False)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     variant = models.CharField(max_length=_NAME_LENGTH)
-    
+
     class Meta:
-        unique_together= (('subject', 'experiment'),)
+        unique_together = (('subject', 'experiment'),)
 
     def __unicode__(self):
         return u"experiment '%s' subject #%d -- variant %s" % (self.experiment.name, self.subject_id, self.variant)
 
 
-    
+
 
 
 class Experiment(models.Model):
     """A named experiment."""
     name = models.CharField(max_length=_NAME_LENGTH, primary_key=True)
-    variants = models.TextField() # one per line... lame and simple
+    variants = models.TextField()  # one per line... lame and simple
     created = models.DateTimeField(auto_now_add=True, db_index=True)
 
     subjects = models.ManyToManyField(Subject, through=Enrollment)
-    
+
     def __unicode__(self):
         return self.name
 
@@ -172,12 +173,12 @@ class Experiment(models.Model):
                 "variant": variant
                 })
         return sv
-        
+
 
 
     @classmethod
     def declare(cls, name, variants):
-        e,created = cls.objects.get_or_create(name=name, 
+        e, created = cls.objects.get_or_create(name=name,
                                               defaults={
                 "variants":"\n".join(variants) })
         return e
@@ -194,7 +195,7 @@ class ExperimentReport(models.Model):
 
     def get_funnel_goals(self):
         return [ x.strip() for x in self.funnel.split("\n") if x ]
-    
+
     def generate(self):
         result = []
         exp = self.experiment
@@ -206,17 +207,17 @@ class ExperimentReport(models.Model):
         variant_counts = []
 
         for v in variants:
-            #variant_counts.append(exp.subjectvariant_set.filter(variant=v).aggregate(ct=Count("variant")).get("ct",0))
+            # variant_counts.append(exp.subjectvariant_set.filter(variant=v).aggregate(ct=Count("variant")).get("ct",0))
             variant_counts.append(
                 dict(val=Enrollment.objects.filter(experiment=exp, variant=v).count(),
                      variant_name=v,
                      pct=None,
                      pct_cumulative=1,
                      pct_cumulative_round=100))
-                
 
 
-        result.append({ "goal": None, 
+
+        result.append({ "goal": None,
                         "variant_names": variants,
                         "variant_counts": variant_counts })
 
@@ -233,8 +234,8 @@ class ExperimentReport(models.Model):
             for vi, v in enumerate(variants):
 
                 if g:
-                    vcount = Enrollment.objects.filter(experiment=exp, 
-                                                       variant=v, 
+                    vcount = Enrollment.objects.filter(experiment=exp,
+                                                       variant=v,
                                                        subject__goals=g
                                                        ).count()
 
@@ -249,14 +250,14 @@ class ExperimentReport(models.Model):
                     vcount = 0
                     pct = 0
 
-                pct_cumulative = pct*result[previ]["variant_counts"][vi]["pct_cumulative"]
+                pct_cumulative = pct * result[previ]["variant_counts"][vi]["pct_cumulative"]
 
                 variant_counts.append(dict(val=vcount,
                                            variant_name=variants[vi],
                                            pct=pct,
-                                           pct_round=( "%0.2f" % (100*pct) ),
+                                           pct_round=("%0.2f" % (100 * pct)),
                                            pct_cumulative=pct_cumulative,
-                                           pct_cumulative_round=( "%0.2f" % (100*pct_cumulative) ),
+                                           pct_cumulative_round=("%0.2f" % (100 * pct_cumulative)),
                                            )
                                       )
 
