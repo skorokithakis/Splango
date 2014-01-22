@@ -7,6 +7,7 @@ from django.http import HttpResponse
 
 from splango.models import *
 
+
 @never_cache
 def confirm_human(request):
     request.experiments.confirm_human()
@@ -18,7 +19,7 @@ def experiments_overview(request):
     exps = Experiment.objects.all()
 
     repts = ExperimentReport.objects.all()
-    
+
     repts_by_id = dict()
 
     for r in repts:
@@ -28,9 +29,10 @@ def experiments_overview(request):
         exp.reports = repts_by_id.get(exp.name, [])
 
     return render_to_response("splango/experiments_overview.html",
-                              {"title":"Experiments",
-                               "exps": exps },
+                              {"title": "Experiments",
+                               "exps": exps},
                               RequestContext(request))
+
 
 @staff_member_required
 def experiment_detail(request, expname):
@@ -39,11 +41,12 @@ def experiment_detail(request, expname):
     repts = ExperimentReport.objects.filter(experiment=exp)
 
     return render_to_response("splango/experiment_detail.html",
-                              {"title":exp.name,
+                              {"title": exp.name,
                                "exp": exp,
                                "repts": repts
                                },
                               RequestContext(request))
+
 
 @staff_member_required
 def experiment_report(request, expname, report_id):
@@ -54,11 +57,11 @@ def experiment_report(request, expname, report_id):
     report_rows = rept.generate()
 
     return render_to_response("splango/experiment_report.html",
-                              { "title": rept.title,
-                                "exp": rept.experiment,
-                                "rept": rept,
-                                "report_rows": report_rows,
-                                },
+                              {"title": rept.title,
+                               "exp": rept.experiment,
+                               "rept": rept,
+                               "report_rows": report_rows,
+                               },
                               RequestContext(request))
 
 
@@ -67,25 +70,23 @@ def experiment_log(request, expname, variant, goal):
     exp = get_object_or_404(Experiment, name=expname)
     goal = get_object_or_404(Goal, name=goal)
 
-    enrollments = Enrollment.objects.filter(experiment=exp, 
-                                            variant=variant, 
+    enrollments = Enrollment.objects.filter(experiment=exp,
+                                            variant=variant,
                                             subject__goals=goal).select_related("subject")[:1000]
     # 1000 limit is just there to keep this page sane
 
     goalrecords = GoalRecord.objects.filter(
         goal=goal,
-        subject__in=[ e.subject for e in enrollments ]).select_related("goal","subject")
+        subject__in=[e.subject for e in enrollments]).select_related("goal", "subject")
 
     title = "Experiment Log: variant %s, goal %s" % (variant, goal)
 
-    activities = list(enrollments)+list(goalrecords)
+    activities = list(enrollments) + list(goalrecords)
 
     activities.sort(key=lambda x: x.created)
 
     return render_to_response("splango/experiment_log.html",
-                              { "exp": exp,
+                              {"exp": exp,
                                 "activities": activities,
-                                "title": title },
+                                "title": title},
                               RequestContext(request))
-
-

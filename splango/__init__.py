@@ -15,6 +15,7 @@ S_HUMAN = "HUMAN"
 # borrowed from debug_toolbar
 _HTML_TYPES = ('text/html', 'application/xhtml+xml')
 
+
 # borrowed from debug_toolbar
 def replace_insensitive(string, target, replacement):
     """
@@ -25,10 +26,8 @@ def replace_insensitive(string, target, replacement):
     index = no_case.rfind(target.lower())
     if index >= 0:
         return string[:index] + replacement + string[index + len(target):]
-    else: # no results so return the original string
+    else:  # no results so return the original string
         return string
-
-
 
 
 class RequestExperimentManager:
@@ -41,21 +40,20 @@ class RequestExperimentManager:
 
         if self.request.session.get(SPLANGO_STATE) is None:
             self.request.session[SPLANGO_STATE] = S_UNKNOWN
-            
+
             if self.is_first_visit():
-                
+
                 logging.info("SPLANGO! First visit!")
 
                 first_visit_goalname = getattr(settings,
-                                               "SPLANGO_FIRST_VISIT_GOAL", 
+                                               "SPLANGO_FIRST_VISIT_GOAL",
                                                None)
 
                 if first_visit_goalname:
                     self.log_goal(first_visit_goalname)
 
     def enqueue(self, action, params):
-        self.queued_actions.append( (action, params) )
-
+        self.queued_actions.append((action, params))
 
     def process_from_queue(self, action, params):
         logging.info("SPLANGO! dequeued: %s (%s)" % (str(action), repr(params)))
@@ -66,8 +64,8 @@ class RequestExperimentManager:
                                           params["variant"])
 
         elif action == "log_goal":
-            g = GoalRecord.record(self.get_subject(), 
-                                  params["goal_name"], 
+            g = GoalRecord.record(self.get_subject(),
+                                  params["goal_name"],
                                   params["request_info"],
                                   extra=params.get("extra"))
 
@@ -77,7 +75,6 @@ class RequestExperimentManager:
         else:
             raise RuntimeError("Unknown queue action '%s'." % action)
 
-
     def is_first_visit(self):
         r = self.request
 
@@ -86,7 +83,7 @@ class RequestExperimentManager:
 
         ref = r.META.get("HTTP_REFERER", "").lower()
 
-        if not ref: # if no referer, then musta just typed it in
+        if not ref:  # if no referer, then musta just typed it in
             return True
 
         if ref.startswith("http://"):
@@ -95,7 +92,6 @@ class RequestExperimentManager:
             ref = ref[8:]
 
         return not(ref.startswith(r.get_host()))
-
 
     def render_js(self):
         logging.info("SPLANGO! render_js")
@@ -113,7 +109,6 @@ class RequestExperimentManager:
             url = "/splango/confirm_human/"
 
         return """<script type='text/javascript'>%sjQuery.get("%s");%s</script>""" % (prejs, url, postjs)
-        
 
     def confirm_human(self, reqdata=None):
         logging.info("SPLANGO! Human confirmed!")
@@ -121,11 +116,9 @@ class RequestExperimentManager:
 
         for (action, params) in self.request.session.get(SPLANGO_QUEUED_UPDATES, []):
             self.process_from_queue(action, params)
-                
 
     def finish(self, response):
         curstate = self.request.session.get(SPLANGO_STATE, S_UNKNOWN)
-
         #logging.info("SPLANGO! finished... state=%s" % curstate)
 
         curuser = self.request.user
@@ -139,7 +132,7 @@ class RequestExperimentManager:
 
             else:
                 # User has just logged in (or registered).
-                # We'll merge the session's current Subject with 
+                # We'll merge the session's current Subject with
                 # an existing Subject for this user, if exists,
                 # or simply set the subject.registered_as field.
 
@@ -155,7 +148,7 @@ class RequestExperimentManager:
                         # merge old subject's activity into new
                         old_subject.merge_into(existing_subject)
 
-                    # whether we had an old_subject or not, we must 
+                    # whether we had an old_subject or not, we must
                     # set session to use our existing_subject
                     self.request.session[SPLANGO_SUBJECT] = existing_subject
 
@@ -181,8 +174,6 @@ class RequestExperimentManager:
                 response.content = replace_insensitive(smart_unicode(response.content), u'</body>', smart_unicode(self.render_js() + u'</body>'))
 
         return response
-        
-        
 
     def get_subject(self):
         assert self.request.session[SPLANGO_STATE] == S_HUMAN, "Hey, you can't call get_subject until you know the subject is a human!"
@@ -193,9 +184,8 @@ class RequestExperimentManager:
             sub = self.request.session[SPLANGO_SUBJECT] = Subject()
             sub.save()
             logging.info("SPLANGO! created subject: %s" % str(sub))
-        
-        return sub
 
+        return sub
 
     def declare_and_enroll(self, exp_name, variants):
         e = Experiment.declare(exp_name, variants)
@@ -203,22 +193,20 @@ class RequestExperimentManager:
         if self.request.session[SPLANGO_STATE] != S_HUMAN:
             logging.info("SPLANGO! choosing new random variant for non-human")
             v = e.get_random_variant()
-            self.enqueue("enroll", { "exp_name": e.name, "variant": v })
+            self.enqueue("enroll", {"exp_name": e.name, "variant": v})
 
         else:
             sub = self.get_subject()
             sv = e.get_variant_for(sub)
             v = sv.variant
-            logging.info("SPLANGO! got variant %s for subject %s" % (str(v),str(sub)))
+            logging.info("SPLANGO! got variant %s for subject %s" % (str(v), str(sub)))
 
         return v
-
 
     def log_goal(self, goal_name, extra=None):
 
         request_info = GoalRecord.extract_request_info(self.request)
 
-        self.enqueue("log_goal", { "goal_name": goal_name,
+        self.enqueue("log_goal", {"goal_name": goal_name,
                                    "request_info": request_info,
-                                   "extra": extra })
-
+                                   "extra": extra})

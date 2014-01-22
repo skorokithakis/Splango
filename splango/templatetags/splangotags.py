@@ -1,15 +1,9 @@
 from django import template
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
-
-import logging
 
 register = template.Library()
 
-
-from splango.models import Goal, Subject, GoalRecord, Enrollment, Experiment, ExperimentReport
-
 CTX_PREFIX = "__splango__experiment__"
+
 
 class ExperimentNode(template.Node):
     def __init__(self, exp_name, variants):
@@ -29,7 +23,8 @@ class ExperimentNode(template.Node):
         expvariant = exp.declare_and_enroll(self.exp_name, self.variants)
         context[CTX_PREFIX + self.exp_name] = expvariant
 
-        return "" # "exp: %s - you are %s" % (self.exp_name, expvariant)
+        return ""  # "exp: %s - you are %s" % (self.exp_name, expvariant)
+
 
 class HypNode(template.Node):
     def __init__(self, exp_name, exp_variant, nodelist):
@@ -47,18 +42,12 @@ class HypNode(template.Node):
         ctxvar = CTX_PREFIX + self.exp_name
 
         if ctxvar not in context:
-            raise template.TemplateSyntaxError("Experiment %s has not yet been declared. Please declare it and supply variant names using an experiment tag before using hyp tags.")
+            raise template.TemplateSyntaxError("Experiment %s has not yet been declared. Please declare it and supply variant names using an experiment tag before using hyp tags." % self.exp_name)
 
         if self.exp_variant == context[ctxvar]:
             return self.nodelist.render(context)
         else:
             return ""
-
-        return "[%s==%s]"%(self.exp_variant, context[ctxvar])+self.nodelist.render(context)+"[/%s]"%self.exp_variant
-
-        return "HypNode: exp_name=%s, exp_variant=%s" % (self.exp_name,
-                                                         self.exp_variant)
-    
 
 
 @register.tag
@@ -71,7 +60,6 @@ def experiment(parser, token):
     return ExperimentNode(exp_name.strip("\"'"), variantstring.strip("\"'").split(","))
 
 
-
 @register.tag
 def hyp(parser, token):
     try:
@@ -79,18 +67,9 @@ def hyp(parser, token):
     except ValueError:
         raise template.TemplateSyntaxError, "%r tag requires exactly two arguments" % token.contents.split()[0]
 
-
-#     print "*** hyp looking for next tag"
-    #print "parser.tokens = %r" % [ t.contents for t in parser.tokens ]
-
     nodelist = parser.parse(("endhyp",))
-    token = parser.next_token()
-
-#     print " * hyp FOUND TOKEN %s" % token.contents
     parser.delete_first_token()
-    #print "parser.tokens = %r" % [ t.contents for t in parser.tokens ]
 
-    
     return HypNode(exp_name.strip("\"'"), exp_variant.strip("\"'"), nodelist)
 
 
@@ -109,7 +88,7 @@ def hyp(parser, token):
 
 #     print "*** elsehyp looking for next tag"
 #     #print "parser.tokens = %r" % [ t.contents for t in parser.tokens ]
-    
+
 #     nodelist = parser.parse(("elsehyp","endhyp"))
-   
+
 #     return HypNode(None, exp_variant, nodelist)

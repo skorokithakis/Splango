@@ -1,11 +1,12 @@
 {% extends 'admin/base.html' %}
 {% load i18n %}
+{% load url from future %}
 
 {% block title %}Splango: Report {{title}}{% endblock %}
 
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="/admin/">{% trans 'Home' %}</a> &rsaquo; <a href="{% url splango-admin %}">Splango</a>
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="/admin/">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'splango-admin' %}">Splango</a>
 
-&rsaquo; <a href="{% url splango-experiment-detail expname=exp.name %}">{{exp.name}}</a>
+&rsaquo; <a href="{% url 'splango-experiment-detail' expname=exp.name %}">{{exp.name}}</a>
 
 {% if title %} &rsaquo; {{ title }}{% endif %}
 </div>{% endblock %}
@@ -17,7 +18,7 @@
 
 <table>
   <tr>
-    <th>Goal</th> 
+    <th>Goal</th>
     {% for variantname in report_rows.0.variant_names %}
     <th colspan="3">&ldquo;{{variantname}}&rdquo;</th>
     {% endfor %}
@@ -29,7 +30,7 @@
     </th>
     {% for variantct in row.variant_counts %}
     <td style="border-left:1px solid #ccc">
-      <a style="text-decoration:none" href="{% url splango-experiment-log expname=exp.name variant=variantct.variant_name goal=row.goal %}">{{variantct.val}}</a>
+      <a style="text-decoration:none" href="{% url 'splango-experiment-log' expname=exp.name variant=variantct.variant_name goal=row.goal %}">{{variantct.val}}</a>
     </td>
     <td>
       {% if variantct.pct %}<i>({{variantct.pct_round}}%)</i>

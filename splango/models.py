@@ -6,9 +6,15 @@ import logging
 # from django.db.models import Avg, Max, Min, Count
 
 import random
+import re
 from django.conf import settings
 
 _NAME_LENGTH = 30
+
+
+def split_lines(line):
+    return [x for x in re.split("[\r\n]", line) if x]
+
 
 class Goal(models.Model):
     name = models.CharField(max_length=_NAME_LENGTH, primary_key=True)
@@ -110,11 +116,6 @@ class GoalRecord(models.Model):
         return u"%s by subject #%d" % (self.goal, self.subject_id)
 
 
-
-
-
-
-
 class Enrollment(models.Model):
     """Identifies which variant a subject is assigned to in a given
     experiment."""
@@ -128,9 +129,6 @@ class Enrollment(models.Model):
 
     def __unicode__(self):
         return u"experiment '%s' subject #%d -- variant %s" % (self.experiment.name, self.subject_id, self.variant)
-
-
-
 
 
 class Experiment(models.Model):
@@ -148,7 +146,7 @@ class Experiment(models.Model):
         self.variants = "\n".join(variantlist)
 
     def get_variants(self):
-        return [ x for x in self.variants.split("\n") if x ]
+        return split_lines(self.variants)
 
     def get_random_variant(self):
         return random.choice(self.get_variants())
@@ -174,13 +172,11 @@ class Experiment(models.Model):
                 })
         return sv
 
-
-
     @classmethod
     def declare(cls, name, variants):
-        e, created = cls.objects.get_or_create(name=name,
-                                              defaults={
-                "variants":"\n".join(variants) })
+        e, created = cls.objects.get_or_create(
+            name=name,
+            defaults={"variants": "\n".join(variants)})
         return e
 
 
@@ -194,7 +190,7 @@ class ExperimentReport(models.Model):
         return u"%s - %s" % (self.title, self.experiment.name)
 
     def get_funnel_goals(self):
-        return [ x.strip() for x in self.funnel.split("\n") if x ]
+        return split_lines(self.funnel)
 
     def generate(self):
         result = []
@@ -215,8 +211,6 @@ class ExperimentReport(models.Model):
                      pct_cumulative=1,
                      pct_cumulative_round=100))
 
-
-
         result.append({ "goal": None,
                         "variant_names": variants,
                         "variant_counts": variant_counts })
@@ -229,7 +223,6 @@ class ExperimentReport(models.Model):
                 g = None
 
             variant_counts = []
-
 
             for vi, v in enumerate(variants):
 
