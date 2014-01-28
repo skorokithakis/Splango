@@ -93,7 +93,7 @@ class GoalRecord(models.Model):
 
     @classmethod
     def record(cls, subject, goalname, request_info, extra=None):
-        logging.warn("Splango:goalrecord %r" % [subject, goalname, request_info, extra])
+        logging.info("Splango:goalrecord %r" % [subject, goalname, request_info, extra])
         goal, created = Goal.objects.get_or_create(name=goalname)
 
         gr, created = cls.objects.get_or_create(subject=subject,
