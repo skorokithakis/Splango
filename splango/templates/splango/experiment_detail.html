@@ -4,7 +4,7 @@
 
 {% block title %}Splango: Experiment {{title}}{% endblock %}
 
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="/admin/">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'splango-admin' %}">Splango</a>
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'splango-admin' %}">Splango</a>
 
 {% if title %} &rsaquo; {{ title }}{% endif %}
 </div>{% endblock %}
@@ -22,7 +22,7 @@
 No reports yet.
 {% endif %}
 
-<p><a class="addlink" href="/admin/splango/experimentreport/add/?experiment={{exp.name|urlencode}}">add a report</a></p>
+<p><a class="addlink" href="{% url 'admin:splango_experimentreport_add' %}?experiment={{exp.name|urlencode}}">add a report</a></p>
 
 {% endblock %}
 
