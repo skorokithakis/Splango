@@ -5,7 +5,7 @@
 
 {% load url from future %}
 
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="/admin/">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'splango-admin' %}">Splango</a>
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'splango-admin' %}">Splango</a>
 
 &rsaquo; <a href="{% url 'splango-experiment-detail' expname=exp.name %}">{{exp.name}}</a>
 
