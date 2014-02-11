@@ -33,7 +33,6 @@ def replace_insensitive(string, target, replacement):
 class RequestExperimentManager:
 
     def __init__(self, request):
-        #logging.debug("REM init")
         self.request = request
         self.user_at_init = request.user
         self.queued_actions = []
@@ -42,9 +41,6 @@ class RequestExperimentManager:
             self.request.session[SPLANGO_STATE] = S_UNKNOWN
 
             if self.is_first_visit():
-
-                logging.info("SPLANGO! First visit!")
-
                 first_visit_goalname = getattr(settings,
                                                "SPLANGO_FIRST_VISIT_GOAL",
                                                None)
@@ -56,8 +52,6 @@ class RequestExperimentManager:
         self.queued_actions.append((action, params))
 
     def process_from_queue(self, action, params):
-        logging.info("SPLANGO! dequeued: %s (%s)" % (str(action), repr(params)))
-
         if action == "enroll":
             exp = Experiment.objects.get(name=params["exp_name"])
             exp.enroll_subject_as_variant(self.get_subject(),
@@ -68,10 +62,6 @@ class RequestExperimentManager:
                                   params["goal_name"],
                                   params["request_info"],
                                   extra=params.get("extra"))
-
-            logging.info("SPLANGO! goal! %s" % str(g))
-
-
         else:
             raise RuntimeError("Unknown queue action '%s'." % action)
 
@@ -94,8 +84,6 @@ class RequestExperimentManager:
         return not(ref.startswith(r.get_host()))
 
     def render_js(self):
-        logging.info("SPLANGO! render_js")
-
         prejs = ""
         postjs = ""
 
@@ -111,7 +99,6 @@ class RequestExperimentManager:
         return """<script type='text/javascript'>%sjQuery.get("%s");%s</script>""" % (prejs, url, postjs)
 
     def confirm_human(self, reqdata=None):
-        logging.info("SPLANGO! Human confirmed!")
         self.request.session[SPLANGO_STATE] = S_HUMAN
 
         for (action, params) in self.request.session.get(SPLANGO_QUEUED_UPDATES, []):
@@ -119,13 +106,10 @@ class RequestExperimentManager:
 
     def finish(self, response):
         curstate = self.request.session.get(SPLANGO_STATE, S_UNKNOWN)
-        #logging.info("SPLANGO! finished... state=%s" % curstate)
 
         curuser = self.request.user
 
         if self.user_at_init != curuser:
-            logging.info("SPLANGO! user status changed over request: %s --> %s" % (str(self.user_at_init), str(curuser)))
-
             if not(curuser.is_authenticated()):
                 # User logged out. It's a new session, nothing special.
                 pass
@@ -183,7 +167,6 @@ class RequestExperimentManager:
         if not sub:
             sub = self.request.session[SPLANGO_SUBJECT] = Subject()
             sub.save()
-            logging.info("SPLANGO! created subject: %s" % str(sub))
 
         return sub
 
@@ -191,7 +174,6 @@ class RequestExperimentManager:
         e = Experiment.declare(exp_name, variants)
 
         if self.request.session[SPLANGO_STATE] != S_HUMAN:
-            logging.info("SPLANGO! choosing new random variant for non-human")
             v = e.get_random_variant()
             self.enqueue("enroll", {"exp_name": e.name, "variant": v})
 
@@ -199,7 +181,6 @@ class RequestExperimentManager:
             sub = self.get_subject()
             sv = e.get_variant_for(sub)
             v = sv.variant
-            logging.info("SPLANGO! got variant %s for subject %s" % (str(v), str(sub)))
 
         return v
 
